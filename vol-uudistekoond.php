@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Viljandimaa uudistekoond
  * Description: Viljandimaa nelja omavalitsuse ja VOL-i piltidega ajalehevaade. Lühikood: [vol_uudised].
- * Version: 1.1.8
+ * Version: 1.1.9
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Viljandimaa Omavalitsuste Liit
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) { exit; }
 require_once __DIR__.'/includes/collector.php';
 
 final class VOL_Uudistekoond {
-    const VERSION='1.1.8';
+    const VERSION='1.1.9';
     const OPTION='voluk_settings';
     const HOOK='voluk_refresh_source';
 
@@ -148,7 +148,7 @@ final class VOL_Uudistekoond {
           <?php if(!empty($item['image'])):?><img src="<?php echo esc_url($item['image']);?>" alt="<?php echo esc_attr($item['imageAlt']??'');?>" loading="<?php echo $lead?'eager':'lazy';?>" decoding="async" referrerpolicy="no-referrer"><span class="voluk-photo-credit">Foto: algallikas</span><?php else:?><span class="voluk-fallback"><?php echo esc_html($item['source_name']);?></span><?php endif;?>
           <span class="voluk-latest" <?php if(!$lead):?>hidden<?php endif;?>>VÄRSKEIM</span></div>
           <div class="voluk-body"><div class="voluk-meta"><span class="voluk-source-name"><?php echo esc_html($item['source_name']);?></span><?php if($stamp):?><time datetime="<?php echo esc_attr($item['date']);?>"><?php echo esc_html(wp_date($format,$stamp,new DateTimeZone('Europe/Tallinn')));?></time><?php endif;?></div>
-          <span class="voluk-topic"><?php echo esc_html($item['category']);?></span><<?php echo $level;?>><a class="voluk-story-link" href="<?php echo esc_url($item['url']);?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($item['title']);?><span class="voluk-sr"> (avaneb uuel vahelehel)</span></a></<?php echo $level;?>>
+          <<?php echo $level;?>><a class="voluk-story-link" href="<?php echo esc_url($item['url']);?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($item['title']);?><span class="voluk-sr"> (avaneb uuel vahelehel)</span></a></<?php echo $level;?>>
           <?php if(!empty($item['excerpt'])):?><p class="voluk-excerpt"><?php echo esc_html($item['excerpt']);?></p><?php endif;?>
           <span class="voluk-read" aria-hidden="true">Loe algallikast ↗</span></div>
         </article>
