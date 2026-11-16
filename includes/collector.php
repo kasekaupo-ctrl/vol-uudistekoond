@@ -224,6 +224,7 @@ function collect_source(array $source,int $count): array {
     if($source['type']==='rss')return collect_rss($source,$count);
     if($source['type']==='wordpress'){
         $url=rtrim($source['url'],'/').'/wp-json/wp/v2/posts?per_page='.$count.'&status=publish&orderby=date&order=desc&_embed=wp%3Afeaturedmedia';
+        $url.='&voluk_refresh='.time(); // Avoid stale upstream caches for a particular per_page URL.
         $rows=json_decode(remote_get($url),true);
         if(!is_array($rows)||array_values($rows)!==$rows||count($rows)>$count||isset($rows['code']))throw new \RuntimeException('Uudiste liidese vastus ei ole korrektne.');
         $items=[];
