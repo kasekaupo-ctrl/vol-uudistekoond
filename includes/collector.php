@@ -153,6 +153,7 @@ function news_details(string $html, array $item): array
     $words = preg_split('/\s+/u', $lead, -1, PREG_SPLIT_NO_EMPTY) ?: [];
     $excerpt = implode(' ', array_slice($words, 0, 24)) . (count($words)>24 ? '…' : '');
     $image = !empty($meta['og:image']) ? absolute_url($meta['og:image'], $item['url']) : null;
+    if(!$image){$img=$xpath->query('//article//img[@src]')->item(0);if($img){$image=absolute_url($img->getAttribute('src'),$item['url']);$meta['og:image:alt']=$img->getAttribute('alt');}}
     return array_merge($item, ['title'=>$title, 'date'=>$date?->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.000\Z'), 'hasTime'=>$hasTime, 'category'=>news_category($title), 'excerpt'=>$excerpt, 'image'=>$image, 'imageAlt'=>plain_text($meta['og:image:alt'] ?? ''), 'previewVersion'=>2]);
 }
 
@@ -163,14 +164,61 @@ function excerpt(string $text): string {
 }
 
 function remote_get(string $url): string {
-    $response=\wp_safe_remote_get($url,['timeout'=>8,'redirection'=>3,'limit_response_size'=>3*1024*1024,'user-agent'=>'VOL-Uudistekoond/1.0 (+https://vol.ee/)','headers'=>['Accept'=>'application/json,text/html']]);
+    $response=\wp_safe_remote_get($url,['timeout'=>8,'redirection'=>3,'limit_response_size'=>3*1024*1024,'user-agent'=>'VOL-Uudistekoond/1.0 (+https://vol.ee/)','headers'=>['Accept'=>'application/rss+xml,application/xml,application/json,text/html']]);
     if(\is_wp_error($response))throw new \RuntimeException($response->get_error_message());
     $code=\wp_remote_retrieve_response_code($response);
     if($code!==200)throw new \RuntimeException('Allikas vastas HTTP '.$code);
     $body=\wp_remote_retrieve_body($response);if($body==='')throw new \RuntimeException('Allikas tagastas tühja vastuse.');return $body;
 }
 
+
+function collect_rss(array $source,int $count): array {
+    $xml=remote_get($source['feed']);
+    if(stripos($xml,'<!DOCTYPE')!==false)throw new \RuntimeException('RSS sisaldab keelatud dokumenditüüpi.');
+    $doc=new \DOMDocument();$previous=libxml_use_internal_errors(true);
+    try {$ok=$doc->loadXML($xml,LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);}
+    finally {libxml_clear_errors();libxml_use_internal_errors($previous);}
+    if(!$ok)throw new \RuntimeException('RSS ei ole korrektne XML.');
+    $xp=new \DOMXPath($doc);$rows=$xp->query('/rss/channel/item');
+    if(!$rows || !$rows->length)throw new \RuntimeException('RSS-ist ei leitud uudiseid.');
+    $items=[];
+    foreach($rows as $row){
+        if(count($items)>=100)break;
+        $get=static function(string $name)use($xp,$row): string {return trim((string)$xp->evaluate('string(./'.$name.')',$row));};
+        $title=$get('title');$url=absolute_url($get('link'),$source['url']);$date=$get('pubDate');
+        if(!$url || !$title || !strtotime($date))continue;
+        $text=$get('description');$image=null;$alt='';
+        foreach($xp->query('./*[local-name()="content" or local-name()="thumbnail" or local-name()="enclosure"][@url]',$row) as $media){
+            $candidate=allowed_image($media->getAttribute('url'),$source['url']);
+            if($candidate){$image=$candidate;break;}
+        }
+        if(!$image && $text){
+            $html=html_document($text);$img=$html->query('//img[@src]')->item(0);
+            if($img){$image=allowed_image($img->getAttribute('src'),$source['url']);$alt=$img->getAttribute('alt');}
+        }
+        $item=['title'=>$title,'url'=>$url,'date'=>gmdate('c',strtotime($date)),'hasTime'=>true,'excerpt'=>excerpt($text),'image'=>$image,'imageAlt'=>$alt];
+        try {$item=validate_item($item,$source);}catch(\RuntimeException){continue;}
+        $items[$url]=$item;
+    }
+    usort($items,static fn($a,$b)=>strtotime($b['date'])<=>strtotime($a['date']));
+    $items=array_slice($items,0,$count);
+    if(!$items)throw new \RuntimeException('RSS-is puuduvad korrektsed uudised.');
+    foreach($items as &$item){
+        if($item['image'])continue;
+        try {
+            $key='voluk_rss_article_'.md5($item['url']);$details=\get_transient($key);
+            if(!is_array($details)){$details=news_details(remote_get($item['url']),$item);\set_transient($key,$details,15*60);}
+            $item['image']=allowed_image($details['image']??null,$source['url']);
+            $item['imageAlt']=bounded_text($details['imageAlt']??'',500);
+            if(!$item['excerpt'])$item['excerpt']=bounded_text($details['excerpt']??'',2000);
+        }catch(\Throwable){/* RSS uudis jääb alles ka pildilehe vea korral. */}
+    }
+    unset($item);
+    return array_map(static fn($item)=>validate_item($item,$source),$items);
+}
+
 function collect_source(array $source,int $count): array {
+    if($source['type']==='rss')return collect_rss($source,$count);
     if($source['type']==='wordpress'){
         $url=rtrim($source['url'],'/').'/wp-json/wp/v2/posts?per_page='.$count.'&status=publish&orderby=date&order=desc&_embed=wp%3Afeaturedmedia';
         $rows=json_decode(remote_get($url),true);
