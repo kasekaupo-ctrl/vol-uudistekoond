@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Viljandimaa uudistekoond
  * Description: Viljandimaa nelja omavalitsuse ja VOL-i piltidega ajalehevaade. Lühikood: [vol_uudised].
- * Version: 1.1.5
+ * Version: 1.1.6
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Viljandimaa Omavalitsuste Liit
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) { exit; }
 require_once __DIR__.'/includes/collector.php';
 
 final class VOL_Uudistekoond {
-    const VERSION='1.1.5';
+    const VERSION='1.1.6';
     const OPTION='voluk_settings';
     const HOOK='voluk_refresh_source';
 
@@ -21,9 +21,9 @@ final class VOL_Uudistekoond {
         return [
             'vol'=>['id'=>'vol','name'=>'Omavalitsuste Liit','full_name'=>'Viljandimaa Omavalitsuste Liit','url'=>home_url('/'),'type'=>'local'],
             'viljandi-linn'=>['id'=>'viljandi-linn','name'=>'Viljandi linn','url'=>'https://viljandi.ee/','type'=>'wordpress'],
-            'viljandi-vald'=>['id'=>'viljandi-vald','name'=>'Viljandi vald','url'=>'https://viljandivald.ee/','type'=>'drupal','selector'=>'news-path'],
+            'viljandi-vald'=>['id'=>'viljandi-vald','name'=>'Viljandi vald','url'=>'https://viljandivald.ee/','type'=>'rss','feed'=>'https://viljandivald.ee/rss-feeds/rss.xml'],
             'mulgi'=>['id'=>'mulgi','name'=>'Mulgi vald','url'=>'https://mulgivald.ee/','type'=>'wordpress'],
-            'pohja-sakala'=>['id'=>'pohja-sakala','name'=>'Põhja-Sakala vald','url'=>'https://pohja-sakala.ee/','type'=>'drupal','selector'=>'news-path'],
+            'pohja-sakala'=>['id'=>'pohja-sakala','name'=>'Põhja-Sakala vald','url'=>'https://pohja-sakala.ee/','type'=>'rss','feed'=>'https://pohja-sakala.ee/rss-feeds/rss.xml'],
         ];
     }
     public static function settings(): array {
@@ -174,7 +174,7 @@ final class VOL_Uudistekoond {
         <h2>Allikate seis</h2><table class="widefat striped"><thead><tr><th>Allikas</th><th>Uudiseid</th><th>Viimane edukas kontroll</th><th>Seis</th><th>Tegevus</th></tr></thead><tbody><?php foreach(self::sources() as $id=>$source):$row=$source['type']==='local'?['items'=>self::local_items((int)$s['per_source']),'status'=>'local']:get_option('voluk_source_'.$id,[]);?><tr><td><?php echo esc_html($source['name']);?></td><td><?php echo count($row['items']??[]);?></td><td><?php echo !empty($row['successAt'])?esc_html(wp_date('d.m.Y H:i',strtotime($row['successAt']),new DateTimeZone('Europe/Tallinn'))):'—';?></td><td><?php echo esc_html($source['type']==='local'?'Otse WordPressist':(!empty($row['error'])?$row['error']:(($row['status']??'')==='ok'?'Korras':'Ootab esimest kogumist')));?></td><td><?php if($source['type']!=='local'):?><form method="post" action="<?php echo esc_url(admin_url('admin-post.php'));?>"><input type="hidden" name="action" value="voluk_refresh"><input type="hidden" name="source" value="<?php echo esc_attr($id);?>"><?php wp_nonce_field('voluk_refresh');?><button class="button" type="submit">Uuenda</button></form><?php endif;?></td></tr><?php endforeach;?></tbody></table>
         <h2>Kasutusnäited</h2><p><code>[vol_uudised]</code></p><p><code>[vol_uudised arv="6" pealkiri="Värskeimad uudised"]</code> — lühem vaade esilehele.</p><p><code>[vol_uudised allikad="viljandi-linn,viljandi-vald,mulgi,pohja-sakala" vaade="omavalitsused"]</code> — omavalitsused eraldi rühmades.</p><p><code>[vol_uudised allikad="vol" filtrid="ei"]</code> — ainult liidu uudised.</p>
         <p>WP-Cron käivitub veebikülastuste toel. Täpseks taustauuenduseks lisa majutuses serveri cron, mis käivitab WordPressi cron’i iga 5 minuti järel. Uudiseid ei impordita WordPressi postitusteks. Allika vea korral jääb alles viimati edukalt kogutud sisu.</p>
-        <p>Viljandi linn ja Mulgi vald: ametlik WordPressi uudiste liides. Viljandi vald ja Põhja-Sakala vald: ametliku avalehe uudiselingid; avalehe valik ei pruugi hõlmata kogu arhiivi. Fotod kuvatakse algallikast.</p></div>
+        <p>Viljandi linn ja Mulgi vald: ametlik WordPressi uudiste liides. Viljandi vald ja Põhja-Sakala vald: ametlik RSS-voog. Puuduv pilt otsitakse uudise algallika lehelt. Fotod kuvatakse algallikast.</p></div>
         <?php
     }
 }
