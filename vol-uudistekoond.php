@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Viljandimaa uudistekoond
  * Description: Viljandimaa nelja omavalitsuse ja VOL-i piltidega ajalehevaade. Lühikood: [vol_uudised].
- * Version: 1.1.7
+ * Version: 1.1.8
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Viljandimaa Omavalitsuste Liit
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) { exit; }
 require_once __DIR__.'/includes/collector.php';
 
 final class VOL_Uudistekoond {
-    const VERSION='1.1.7';
+    const VERSION='1.1.8';
     const OPTION='voluk_settings';
     const HOOK='voluk_refresh_source';
 
