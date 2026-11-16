@@ -164,7 +164,10 @@ function excerpt(string $text): string {
 }
 
 function remote_get(string $url): string {
+    for($attempt=0;$attempt<2;$attempt++){
     $response=\wp_safe_remote_get($url,['timeout'=>8,'redirection'=>3,'limit_response_size'=>3*1024*1024,'user-agent'=>'VOL-Uudistekoond/1.0 (+https://vol.ee/)','headers'=>['Accept'=>'application/rss+xml,application/xml,application/json,text/html']]);
+    if(!\is_wp_error($response) && !in_array(\wp_remote_retrieve_response_code($response),[408,429,500,502,503,504],true))break;
+    }
     if(\is_wp_error($response))throw new \RuntimeException($response->get_error_message());
     $code=\wp_remote_retrieve_response_code($response);
     if($code!==200)throw new \RuntimeException('Allikas vastas HTTP '.$code);
