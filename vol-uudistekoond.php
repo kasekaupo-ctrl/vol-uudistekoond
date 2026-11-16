@@ -123,7 +123,7 @@ final class VOL_Uudistekoond {
         $topics=array_unique(array_column($items,'category'));sort($topics,SORT_LOCALE_STRING);
         ?>
         <section id="<?php echo esc_attr($id); ?>" class="voluk" data-view="<?php echo esc_attr($view); ?>" aria-label="Viljandimaa uudistekoond">
-          <div class="voluk-heading"><div><span class="voluk-kicker">VILJANDIMAA · KOHALIK ELU</span><?php if($atts['pealkiri']!==''):?><h2><?php echo esc_html($atts['pealkiri']);?></h2><?php endif;?></div><span class="voluk-count" role="status" aria-live="polite"><?php echo count($items);?> uudist</span></div>
+          <div class="voluk-heading"><div><span class="voluk-kicker">KOHALIK ELU</span><?php if($atts['pealkiri']!==''):?><h2><?php echo esc_html($atts['pealkiri']);?></h2><?php endif;?></div><span class="voluk-count" role="status" aria-live="polite"><?php echo count($items);?> uudist</span></div>
           <?php if($atts['filtrid']!=='ei'):?>
           <div class="voluk-toolbar"><label class="voluk-search"><span class="voluk-sr">Otsi uudiseid</span><input type="search" placeholder="Otsi uudist…" data-voluk-search></label>
           <label><span class="voluk-sr">Vali allikas</span><select data-voluk-source><option value="">Kõik allikad</option><?php foreach($data as $source):?><option value="<?php echo esc_attr($source['id']);?>"><?php echo esc_html($source['name']);?></option><?php endforeach;?></select></label>
